@@ -344,7 +344,7 @@ class AltaRouter
                                 foreach ($methods as $m) {
                                     $name = isset($args['name']) ? "'{$args['name']}'" : $this->idx++;
                                     fprintf(
-                                        $this->handleCachefile,
+                                        $this->handleCacheFile,
                                         "%s => ['%s', '%s', ['%s', '%s'], '%s', '%s'],\n",
                                         $name,
                                         $m,
