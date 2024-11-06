@@ -10,7 +10,7 @@ if (file_exists($_SERVER['SCRIPT_FILENAME']) && pathinfo($_SERVER['SCRIPT_FILENA
     return;
 }
 
-$router = new AltoRouter();
+$router = new AltaRouter();
 $router->setBasePath('/AltoRouter/examples/basic');
 $router->map('GET|POST', '/', 'home#index', 'home');
 $router->map('GET', '/users/', ['c' => 'UserController', 'a' => 'ListAction']);

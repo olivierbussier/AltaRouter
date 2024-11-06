@@ -1,59 +1,37 @@
 <?php
 
-require 'AltoRouter.php';
+require 'vendor/autoload.php';
 
-class AltoRouterDebug extends AltoRouter
+class AltaRouterDebug extends AltaRouter
 {
+    public function __construct(string $controllerDirectory = 'tests/Controller', string $nameSpace = '', string $cacheFile = './routes.cache.php', string $basePath = '', array $matchTypes = [])
+    {
+        parent::__construct($controllerDirectory, $nameSpace, $cacheFile, $basePath, $matchTypes);
+    }
+
     public function getNamedRoutes()
     {
-        return $this->namedRoutes;
+        return $this->getRoutes();
     }
 
     public function getBasePath()
     {
         return $this->basePath;
     }
-}
 
-class SimpleTraversable implements Iterator
-{
-
-    protected $_position = 0;
-
-    protected $_data = [
-        ['GET', '/foo', 'foo_action', null],
-        ['POST', '/bar', 'bar_action', 'second_route']
-    ];
-
-    #[\ReturnTypeWillChange]
-    public function current()
+    public function clearRoutes()
     {
-        return $this->_data[$this->_position];
-    }
-
-    #[\ReturnTypeWillChange]
-    public function key()
-    {
-        return $this->_position;
-    }
-    public function next() : void
-    {
-        ++$this->_position;
-    }
-    public function rewind() : void
-    {
-        $this->_position = 0;
-    }
-    public function valid() : bool
-    {
-        return isset($this->_data[$this->_position]);
+        self::$routes = [];
+        self::$routesCreatedByMap = [];
     }
 }
+
+include_once 'tests/Controller/TestController.php';
 
 class AltoRouterTest extends PHPUnit\Framework\TestCase
 {
     /**
-     * @var AltoRouter
+     * @var AltaRouter
      */
     protected $router;
 
@@ -61,13 +39,15 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
      * Sets up the fixture, for example, opens a network connection.
      * This method is called before a test is executed.
      */
-    protected function setUp() : void
+    protected function setUp(): void
     {
-        $this->router = new AltoRouterDebug;
+        $this->router = new AltaRouterDebug('./tests/Controller', '', './routes.cache.php');
+        $this->router->clearRoutes();
+        //unlink('./routes.cache.php');
     }
 
     /**
-     * @covers AltoRouter::getRoutes
+     * @covers AltaRouter::getRoutes
      */
     public function testGetRoutes()
     {
@@ -79,62 +59,11 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
         $this->assertIsArray($this->router->getRoutes());
         // $this->assertIsArray($this->router->getRoutes()); // for phpunit 7.x
         $this->router->map($method, $route, $target);
-        $this->assertEquals([[$method, $route, $target, null]], $this->router->getRoutes());
+        $this->assertEquals(['map_0' => [$method, $route, $target, null, null]], $this->router->getRoutes());
     }
 
     /**
-     * @covers AltoRouter::addRoutes
-     */
-    public function testAddRoutes()
-    {
-        $method = 'POST';
-        $route = '/[:controller]/[:action]';
-        $target = static function () {
-        };
-
-        $this->router->addRoutes([
-        [$method, $route, $target],
-        [$method, $route, $target, 'second_route']
-        ]);
-
-        $routes = $this->router->getRoutes();
-
-        $this->assertEquals([$method, $route, $target, null], $routes[0]);
-        $this->assertEquals([$method, $route, $target, 'second_route'], $routes[1]);
-    }
-
-    /**
-     * @covers AltoRouter::addRoutes
-     */
-    public function testAddRoutesAcceptsTraverable()
-    {
-        $traversable = new SimpleTraversable();
-        $this->router->addRoutes($traversable);
-
-        $traversable->rewind();
-
-        $first = $traversable->current();
-        $traversable->next();
-        $second = $traversable->current();
-
-        $routes = $this->router->getRoutes();
-
-        $this->assertEquals($first, $routes[0]);
-        $this->assertEquals($second, $routes[1]);
-    }
-
-    /**
-     * @covers AltoRouter::addRoutes
-     * @expectedException Exception
-     */
-    public function testAddRoutesThrowsExceptionOnInvalidArgument()
-    {
-        $this->expectException(RuntimeException::class);
-        $this->router->addRoutes(new stdClass);
-    }
-
-    /**
-     * @covers AltoRouter::setBasePath
+     * @covers AltaRouter::setBasePath
      */
     public function testSetBasePath()
     {
@@ -146,7 +75,7 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::map
+     * @covers AltaRouter::map
      */
     public function testMap()
     {
@@ -159,11 +88,11 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
 
         $routes = $this->router->getRoutes();
 
-        $this->assertEquals([$method, $route, $target, null], $routes[0]);
+        $this->assertEquals([$method, $route, $target, null, null], $routes['map_0']);
     }
 
     /**
-     * @covers AltoRouter::map
+     * @covers AltaRouter::map
      */
     public function testMapWithName()
     {
@@ -176,10 +105,10 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
         $this->router->map($method, $route, $target, $name);
 
         $routes = $this->router->getRoutes();
-        $this->assertEquals([$method, $route, $target, $name], $routes[0]);
+        $this->assertEquals([$method, $route, $target, $name, null], $routes['myroute']);
 
         $named_routes = $this->router->getNamedRoutes();
-        $this->assertEquals($route, $named_routes[$name]);
+        $this->assertEquals($route, $named_routes[$name][1]);
 
         try {
             $this->router->map($method, $route, $target, $name);
@@ -191,11 +120,11 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
 
 
     /**
-     * @covers AltoRouter::generate
+     * @covers AltaRouter::generate
      */
     public function testGenerate()
     {
-        $params =[
+        $params = [
             'controller' => 'test',
             'action' => 'someaction'
         ];
@@ -221,7 +150,7 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::generate
+     * @covers AltaRouter::generate
      */
     public function testGenerateWithOptionalUrlParts()
     {
@@ -252,7 +181,7 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
 
     /**
      * GitHub #98
-     * @covers AltoRouter::generate
+     * @covers AltaRouter::generate
      */
     public function testGenerateWithOptionalPartOnBareUrl()
     {
@@ -277,7 +206,7 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::generate
+     * @covers AltaRouter::generate
      */
     public function testGenerateWithNonexistingRoute()
     {
@@ -290,8 +219,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::match
-     * @covers AltoRouter::compileRoute
+     * @covers AltaRouter::match
+     * @covers AltaRouter::compileRoute
      */
     public function testMatch()
     {
@@ -303,7 +232,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
                 'controller' => 'test',
                 'action' => 'do'
             ],
-            'name' => 'foo_route'
+            'name' => 'foo_route',
+            'file' => null
         ], $this->router->match('/foo/test/do', 'GET'));
 
         $this->assertFalse($this->router->match('/foo/test/do', 'POST'));
@@ -314,12 +244,13 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
                 'controller' => 'test',
                 'action' => 'do'
             ],
-            'name' => 'foo_route'
+            'name' => 'foo_route',
+            'file' => null
         ], $this->router->match('/foo/test/do?param=value', 'GET'));
     }
 
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithNonRegex()
     {
@@ -328,7 +259,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
         $this->assertEquals([
             'target' => 'PagesController#about',
             'params' => [],
-            'name' => 'about_us'
+            'name' => 'about_us',
+            'file' => null
         ], $this->router->match('/about-us', 'GET'));
 
         $this->assertFalse($this->router->match('/about-us', 'POST'));
@@ -337,7 +269,7 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithFixedParamValues()
     {
@@ -349,7 +281,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
                 'id' => 1,
                 'action' => 'delete'
             ],
-            'name' => 'users_do'
+            'name' => 'users_do',
+            'file' => null
         ], $this->router->match('/users/1/delete', 'POST'));
 
         $this->assertFalse($this->router->match('/users/1/delete', 'GET'));
@@ -358,11 +291,11 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithPlainRoute()
     {
-        $router = $this->getMockBuilder('AltoRouterDebug')
+        $router = $this->getMockBuilder('AltaRouterDebug')
             ->setMethods(['compileRoute'])
             ->getMock();
 
@@ -377,7 +310,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
         $this->assertEquals([
             'target' => 'website#contact',
             'params' => [],
-            'name' => 'contact'
+            'name' => 'contact',
+            'file' => null
         ], $router->match('/contact', 'GET'));
 
         // no prefix match, so no regex compilation necessary
@@ -385,7 +319,7 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithServerVars()
     {
@@ -400,12 +334,13 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
                 'controller' => 'test',
                 'action' => 'do'
             ],
-            'name' => 'foo_route'
+            'name' => 'foo_route',
+            'file' => null
         ], $this->router->match());
     }
 
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithOptionalUrlParts()
     {
@@ -418,7 +353,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
                 'action' => 'do',
                 'type' => 'json'
             ],
-            'name' => 'bar_route'
+            'name' => 'bar_route',
+            'file' => null
         ], $this->router->match('/bar/test/do.json', 'GET'));
 
         $this->assertEquals([
@@ -427,13 +363,14 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
                 'controller' => 'test',
                 'action' => 'do'
             ],
-            'name' => 'bar_route'
+            'name' => 'bar_route',
+            'file' => null
         ], $this->router->match('/bar/test/do', 'GET'));
     }
 
     /**
      * GitHub #98
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithOptionalPartOnBareUrl()
     {
@@ -444,18 +381,20 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
             'params' => [
                 'page' => 1
             ],
-            'name' => 'bare_route'
+            'name' => 'bare_route',
+            'file' => null
         ], $this->router->match('/1', 'GET'));
 
         $this->assertEquals([
             'target' => 'bare_action',
             'params' => [],
-            'name' => 'bare_route'
+            'name' => 'bare_route',
+            'file' => null
         ], $this->router->match('/', 'GET'));
     }
 
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithWildcard()
     {
@@ -465,11 +404,13 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
         $this->assertEquals([
             'target' => 'bar_action',
             'params' => [],
-            'name' => 'bar_route'
+            'name' => 'bar_route',
+            'file' => null
         ], $this->router->match('/everything', 'GET'));
     }
+
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithCustomRegexp()
     {
@@ -478,13 +419,15 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
         $this->assertEquals([
             'target' => 'bar_action',
             'params' => [],
-            'name' => 'bar_route'
+            'name' => 'bar_route',
+            'file' => null
         ], $this->router->match('/everything', 'GET'));
 
         $this->assertFalse($this->router->match('/some-other-thing', 'GET'));
     }
+
     /**
-     * @covers AltoRouter::match
+     * @covers AltaRouter::match
      */
     public function testMatchWithUnicodeRegex()
     {
@@ -507,7 +450,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
             'name' => 'unicode_route',
             'params' => [
                 'path' => '大家好'
-            ]
+            ],
+            'file' => null
         ], $this->router->match('/大家好', 'GET'));
 
         $this->assertFalse($this->router->match('/﷽‎', 'GET'));
@@ -516,10 +460,11 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     public function testMatchWithSlashBeforeOptionalPart()
     {
         $this->router->map('GET', '/archives/[lmin:category]?', 'Article#archives');
-        $expected =  [
+        $expected = [
             'target' => 'Article#archives',
             'params' => [],
-            'name' => null
+            'name' => null,
+            'file' => null
         ];
 
         $this->assertEquals($expected, $this->router->match('/archives/', 'GET'));
@@ -527,7 +472,7 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
     }
 
     /**
-     * @covers AltoRouter::addMatchTypes
+     * @covers AltaRouter::addMatchTypes
      */
     public function testMatchWithCustomNamedRegex()
     {
@@ -539,7 +484,8 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
             'params' => [
                 'customId' => 'AB1',
             ],
-            'name' => 'bar_route'
+            'name' => 'bar_route',
+            'file' => null
         ], $this->router->match('/bar/AB1', 'GET'));
 
         $this->assertEquals([
@@ -547,13 +493,15 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
             'params' => [
                 'customId' => 'AB1_0123456789',
             ],
-            'name' => 'bar_route'
+            'name' => 'bar_route',
+            'file' => null
         ], $this->router->match('/bar/AB1_0123456789', 'GET'));
 
         $this->assertFalse($this->router->match('/some-other-thing', 'GET'));
     }
+
     /**
-     * @covers AltoRouter::addMatchTypes
+     * @covers AltaRouter::addMatchTypes
      */
     public function testMatchWithCustomNamedUnicodeRegex()
     {
@@ -573,9 +521,28 @@ class AltoRouterTest extends PHPUnit\Framework\TestCase
             'name' => 'non_arabic_route',
             'params' => [
                 'string' => 'some-path'
-            ]
+            ],
+            'file' => null
         ], $this->router->match('/bar/some-path', 'GET'));
 
         $this->assertFalse($this->router->match('/﷽‎', 'GET'));
+    }
+
+    public function testAttributeGeneratedRoute()
+    {
+        $this->assertEquals([
+            'target' => [TestController::class, 'test'],
+            'name' => null,
+            'params' => [],
+            'file'  => './tests/Controller/TestController.php'
+        ], $this->router->match('/test', 'get'));
+
+        $this->assertEquals([
+            'target' => [TestController::class, 'test2'],
+            'name' => 'myTest',
+            'params' => [],
+            'file'  => './tests/Controller/TestController.php'
+        ], $this->router->match('/test2', 'get'));
+        echo "";
     }
 }

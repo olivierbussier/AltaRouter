@@ -55,7 +55,7 @@ $routes = [
     ["POST", "/1/functions"],
 ];
 $total_time = 0;
-$router = new AltoRouter();
+$router = new AltaRouter();
 
 // map requests
 $start = microtime(true);

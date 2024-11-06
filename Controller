@@ -1,0 +1,4 @@
+<?php
+
+self::$routes = [
+...self::$routesCreatedByMap,

@@ -1,42 +1,81 @@
 # AltoRouter  ![PHP status](https://github.com/dannyvankooten/AltoRouter/workflows/PHP/badge.svg) [![Latest Stable Version](https://poser.pugx.org/altorouter/altorouter/v/stable.svg)](https://packagist.org/packages/altorouter/altorouter) [![License](https://poser.pugx.org/altorouter/altorouter/license.svg)](https://packagist.org/packages/altorouter/altorouter)
 
-AltoRouter is a small but powerful routing class, heavily inspired by [klein.php](https://github.com/chriso/klein.php/).
+AltaRouter is a fork of AltoRouter, light weighted package adding route attributes capabilities and efficient route caching and checking mechanism
+
+Usage: 
 
 ```php
-$router = new AltoRouter();
 
-// map homepage
-$router->map('GET', '/', function() {
-    require __DIR__ . '/views/home.php';
-});
+use App\Router\Route;
 
-// dynamic named route
-$router->map('GET|POST', '/users/[i:id]/', function($id) {
-  $user = .....
-  require __DIR__ . '/views/user/details.php';
-}, 'user-details');
+// map homepage controller
+#[Route(method: 'get', route: 'home', name: 'home-page')]
+public function home()
+{
+    ...
+}
 
-// echo URL to user-details page for ID 5
-echo $router->generate('user-details', ['id' => 5]); // Output: "/users/5"
+// Route matching
+// Optional parameters 'route' and 'httpMethod', match could fetch them directly from $_SERVER
+
+$match = $this->match($route, $httpMethod);
+...
 ```
 
-## Features
+## AltaRouter Features
 
+* Routes created automatically by AltaRouter using attribute mechanism
+* Routes cached in a php file, this file is rebuild if the controller file of the requested route more recent than cache file
+* Instead of multiple 'map' call, a single include with all routes in an array is done at init
+
+## And of course, as AltoRouter
 * Can be used with all HTTP Methods
 * Dynamic routing with named route parameters
 * Reversed routing
 * Flexible regular expression routing (inspired by [Sinatra](http://www.sinatrarb.com/))
 * Custom regexes
 
+This doc covers only AltaRouter usage with php attributes, refer to the [AltoRouter documentation](https://dannyvankooten.github.io/AltoRouter) for everything else
+
 ## Getting started
 
-You need PHP >= 7.3 to use AltoRouter, although we highly recommend you [use an officially supported PHP version](https://secure.php.net/supported-versions.php) that is not EOL.
+You need PHP >= 8.0 to use AltoRouter.
 
-- [Install AltoRouter](https://dannyvankooten.github.io/AltoRouter//usage/install.html)
-- [Rewrite all requests to AltoRouter](https://dannyvankooten.github.io/AltoRouter//usage/rewrite-requests.html)
-- [Map your routes](https://dannyvankooten.github.io/AltoRouter//usage/mapping-routes.html)
-- [Match requests](https://dannyvankooten.github.io/AltoRouter//usage/matching-requests.html)
-- [Process the request your preferred way](https://dannyvankooten.github.io/AltoRouter//usage/processing-requests.html)
+## AltaRouter installation
+
+AltaRouter respect PSR4 autoloading rules. The best way to include AltaRouter in your project is to use composer
+
+`composer require altarouter/altarouter`
+
+Follow [Rewrite all requests to AltoRouter](https://dannyvankooten.github.io/AltoRouter//usage/rewrite-requests.html) explanations to
+redirect http requests to altarouter
+
+## Route mapping
+
+Route mapping could be done using 'map' method, see [Map your routes](https://dannyvankooten.github.io/AltoRouter//usage/mapping-routes.html) for usage explanations
+
+AltaRouter provides you the capability to declare routes on top of the controller:
+```php
+#[Route(method: method, route: url, name: routeName)
+```
+
+### Description of parameters:
+__method__
+- (string) : 'get', 'post', 'put', 'delete', ...
+- (array) : ['get', 'post']
+
+route:
+- (string) : url of the route, like 'account/rights'
+
+name:
+- (string optional) : name of the route. The route name is mandatory if you want to build later url routes for
+buttons or anchors
+
+### Match requests amon defined routes
+
+The route matching is identical at those defined in Altorouter docs : [Match requests](https://dannyvankooten.github.io/AltoRouter//usage/matching-requests.html) and [Process the request your preferred way](https://dannyvankooten.github.io/AltoRouter//usage/processing-requests.html)
+
+## 
 
 ## Contributors
 - [Danny van Kooten](https://github.com/dannyvankooten)
