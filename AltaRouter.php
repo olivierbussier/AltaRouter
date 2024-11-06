@@ -29,6 +29,7 @@ class AltaRouter
      * @var ?string name of the file to be created to cache routes.
      */
     protected ?string $cacheFile = null;
+    protected mixed $handleCacheFile = null;
 
     /**
      * @var string Can be used to ignore leading part of the Request URL (if main file lives in subdirectory of host)
@@ -343,7 +344,7 @@ class AltaRouter
                                 foreach ($methods as $m) {
                                     $name = isset($args['name']) ? "'{$args['name']}'" : $this->idx++;
                                     fprintf(
-                                        $this->file,
+                                        $this->handleCachefile,
                                         "%s => ['%s', '%s', ['%s', '%s'], '%s', '%s'],\n",
                                         $name,
                                         $m,
@@ -370,14 +371,14 @@ class AltaRouter
      */
     private function generateRoutesFromAttributes(string $directory, string $nameSpace): void
     {
-        $this->file = fopen($this->cacheFile, "w+");
-        if (!$this->file) {
+        $this->handleCacheFile = fopen($this->cacheFile, "w+");
+        if (!$this->handleCacheFile) {
             throw new Exception("Open file error");
         }
-        fprintf($this->file, "<?php\n\nself::\$routes = [\n...self::\$routesCreatedByMap,\n");
+        fprintf($this->handleCacheFile, "<?php\n\nself::\$routes = [\n...self::\$routesCreatedByMap,\n");
         $this->listClassController($directory, $nameSpace);
-        fprintf($this->file, "\n];\n");
-        fclose($this->file);
+        fprintf($this->handleCacheFile, "\n];\n");
+        fclose($this->handleCacheFile);
     }
 
     /**
