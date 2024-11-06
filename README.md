@@ -1,4 +1,4 @@
-# AltoRouter  ![PHP status](https://github.com/dannyvankooten/AltoRouter/workflows/PHP/badge.svg) [![Latest Stable Version](https://poser.pugx.org/altorouter/altorouter/v/stable.svg)](https://packagist.org/packages/altorouter/altorouter) [![License](https://poser.pugx.org/altorouter/altorouter/license.svg)](https://packagist.org/packages/altorouter/altorouter)
+# AltaRouter  ![PHP status](https://github.com/dannyvankooten/AltoRouter/workflows/PHP/badge.svg) [![Latest Stable Version](https://poser.pugx.org/altorouter/altorouter/v/stable.svg)](https://packagist.org/packages/altorouter/altorouter) [![License](https://poser.pugx.org/altorouter/altorouter/license.svg)](https://packagist.org/packages/altorouter/altorouter)
 
 AltaRouter is a fork of AltoRouter, light weighted package adding route attributes capabilities and efficient route caching and checking mechanism
 
