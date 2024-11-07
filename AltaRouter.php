@@ -69,7 +69,13 @@ class AltaRouter
         array $matchTypes = []
     ) {
         $this->cacheFile = $cacheFile;
+        if (!str_ends_with($nameSpace, '\\')) {
+            $nameSpace .= '\\';
+        }
         $this->nameSpace = $nameSpace;
+        if (!str_ends_with($controllerDirectory, '/')) {
+            $controllerDirectory .= '/';
+        }
         $this->controllerDirectory = $controllerDirectory;
         $this->setBasePath($basePath);
         $this->addMatchTypes($matchTypes);
@@ -229,8 +235,13 @@ class AltaRouter
                 $match = strcmp($requestUrl, $route) === 0;
             } else {
                 // Compare longest non-param string with url before moving on to regex
-                // Check if last character before param is a slash, because it could be optional if param is optional too (see https://github.com/dannyvankooten/AltoRouter/issues/241)
-                if (strncmp($requestUrl, $route, $position) !== 0 && ($lastRequestUrlChar === '/' || $route[$position - 1] !== '/')) {
+                // Check if last character before param is a slash, because it could be optional if param is optional
+                // too (see https://github.com/dannyvankooten/AltoRouter/issues/241)
+                if (strncmp(
+                    $requestUrl,
+                    $route,
+                    $position
+                ) !== 0 && ($lastRequestUrlChar === '/' || $route[$position - 1] !== '/')) {
                     continue;
                 }
 
@@ -318,14 +329,14 @@ class AltaRouter
             // Supposons que le nom de la classe est le même que le nom du fichier
             if (is_dir($base . '/' . $file)) {
                 if ($file !== '.' && $file !== '..') {
-                    $this->listClassController($base . '/' . $file, $nameSpace . $file . '\\');
+                    $this->listClassController($base . $file . '/', $nameSpace . $file . '\\');
                 }
             } else {
                 $chars = pathinfo($file, PATHINFO_ALL);
                 if ($chars['extension'] === 'php') {
                     $baseFile = $chars['filename'];
                     $fullClassName = $nameSpace . $baseFile;
-                    $fullFileName = $base . '/' . $file;
+                    $fullFileName = $base . $file;
                     // Routes
                     $refl = new ReflectionClass($fullClassName);
                     foreach ($refl->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
@@ -343,14 +354,14 @@ class AltaRouter
                                     $name = isset($args['name']) ? "'{$args['name']}'" : $this->idx++;
                                     fprintf(
                                         $this->handleCacheFile,
-                                        "%s => ['%s', '%s', ['%s', '%s'], '%s', '%s'],\n",
+                                        "%s=>['%s','%s',['%s','%s'],'%s','%s'],\n",
                                         $name,
                                         $m,
                                         $args['route'],
-                                        $method->class,
+                                        str_replace($this->nameSpace, '', $method->class),
                                         $method->name,
                                         $args['name'] ?? null,
-                                        $fullFileName
+                                        str_replace($this->controllerDirectory, '', $fullFileName)
                                     );
                                 }
                             }
@@ -405,7 +416,10 @@ class AltaRouter
         $match = $this->matchUncached($requestUrl, $requestMethod);
 
         // Route found, check if cache created before last controller update
-        if ($match && $match['file'] && (filemtime($match['file']) > filemtime($cacheFile))) {
+        if ($match &&
+            $match['file'] &&
+            (filemtime($this->controllerDirectory . $match['file']) > filemtime($cacheFile))
+        ) {
             // The cache could be not is not up to date
             $this->generateRoutesFromAttributes($this->controllerDirectory, $this->nameSpace);
             if (!file_exists($cacheFile)) {
