@@ -6,7 +6,7 @@ Usage:
 
 ```php
 
-use App\Router\Route;
+use Route;
 
 // map homepage controller
 #[Route(method: 'get', route: 'home', name: 'home-page')]
