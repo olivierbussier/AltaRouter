@@ -11,8 +11,6 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-use App\Router\Route;
-
 class AltaRouter
 {
     /**
@@ -332,7 +330,7 @@ class AltaRouter
                     $refl = new ReflectionClass($fullClassName);
                     foreach ($refl->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
                         $methodAttributes = new \ReflectionMethod($method->class, $method->name);
-                        $attributes = $methodAttributes->getAttributes(\Route::class);
+                        $attributes = $methodAttributes->getAttributes(Route::class);
                         if (count($attributes) > 0) {
                             foreach ($attributes as $attribute) {
                                 $args = $attribute->getArguments();
@@ -393,33 +391,31 @@ class AltaRouter
     {
         $cacheFile = $this->cacheFile;
 
-        // On vérifie si la date de la route est plus ancienne que le fichier la contenant
-        // Si oui, on regénère le fichier de cache des routes
-        try {
-            // Chargement du fichier de routes
-            if (!file_exists($cacheFile)) {
-                throw new Exception("Cache file not found");
-            }
-            include $cacheFile;
-            $match = $this->matchUncached($requestUrl, $requestMethod);
-            // Route trouvée, on vérifie si le controlleur est plus récent que le cache
-            if ($match['file'] && (filemtime($match['file']) > filemtime($cacheFile))) {
-                // Fichier contrôleur plus récent que le fichier de cache
 
-                throw new Exception("Route Cache too old");
-            }
-        } catch (Throwable $e) {
-            // On peut se retrouver ici soit parce que le cache est inexistant, soit
-            // parce que le fichier php contenant le contrôleur de la route est plus
-            // récent que le fichier de cache
+        // Try to load cache if exists
+        if (!file_exists($cacheFile)) {
+            // Cache does no exists
             $this->generateRoutesFromAttributes($this->controllerDirectory, $this->nameSpace);
-            // Pour éviter les boucles folles
             if (!file_exists($cacheFile)) {
-                return false;
+                // Die!
+                throw new RuntimeException("Route cache file error");
+            }
+        }
+        include $cacheFile;
+        $match = $this->matchUncached($requestUrl, $requestMethod);
+
+        // Route found, check if cache created before last controller update
+        if ($match && $match['file'] && (filemtime($match['file']) > filemtime($cacheFile))) {
+            // The cache could be not is not up to date
+            $this->generateRoutesFromAttributes($this->controllerDirectory, $this->nameSpace);
+            if (!file_exists($cacheFile)) {
+                // Die!
+                throw new RuntimeException("Route cache file error");
             }
             include $cacheFile;
             $match = $this->matchUncached($requestUrl, $requestMethod);
         }
+
         return $match;
     }
 }
