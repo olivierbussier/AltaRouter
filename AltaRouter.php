@@ -397,9 +397,12 @@ class AltaRouter
         // Si oui, on regénère le fichier de cache des routes
         try {
             // Chargement du fichier de routes
+            if (!file_exists($cacheFile)) {
+                throw new Exception("Cache file not found");
+            }
             include $cacheFile;
             $match = $this->matchUncached($requestUrl, $requestMethod);
-            // match['file'] est null si la route est définie avec 'map'
+            // Route trouvée, on vérifie si le controlleur est plus récent que le cache
             if ($match['file'] && (filemtime($match['file']) > filemtime($cacheFile))) {
                 // Fichier contrôleur plus récent que le fichier de cache
 
@@ -410,6 +413,10 @@ class AltaRouter
             // parce que le fichier php contenant le contrôleur de la route est plus
             // récent que le fichier de cache
             $this->generateRoutesFromAttributes($this->controllerDirectory, $this->nameSpace);
+            // Pour éviter les boucles folles
+            if (!file_exists($cacheFile)) {
+                return false;
+            }
             include $cacheFile;
             $match = $this->matchUncached($requestUrl, $requestMethod);
         }
