@@ -1,6 +1,6 @@
 <?php
 
-#[Attribute]
+#[Attribute(Attribute::IS_REPEATABLE | Attribute::TARGET_METHOD)]
 class Route
 {
     public function __construct(
